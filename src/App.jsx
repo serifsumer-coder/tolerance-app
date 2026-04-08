@@ -22,28 +22,46 @@ function App() {
     const ratio = t / n;
 
     let costMessage = "";
+    let score = 0;
 
     if (ratio < 0.01) {
       costMessage = "💸 Cost impact: HIGH";
+      score = 90;
     } else if (ratio < 0.03) {
       costMessage = "💰 Cost impact: MEDIUM";
+      score = 60;
     } else {
       costMessage = "💲 Cost impact: LOW";
+      score = 20;
     }
 
     if (a >= min && a <= max) {
-      if (t < n * 0.01) {
+      if (ratio < 0.01) {
         setResult(
-          "⚠️ Tolerance is very tight (<1%)\nLikely increases machining cost\nConsider relaxing if function allows\n\n" +
-            costMessage
+          "⚠️ Tolerance is very tight (<1%)\n" +
+            "Likely increases machining cost\n" +
+            "Consider relaxing if function allows\n\n" +
+            costMessage +
+            "\n\nRisk Score: " +
+            score +
+            " / 100"
         );
       } else {
-        setResult("✅ Within tolerance → OK\n\n" + costMessage);
+        setResult(
+          "✅ Within tolerance → OK\n\n" +
+            costMessage +
+            "\n\nRisk Score: " +
+            score +
+            " / 100"
+        );
       }
     } else {
       setResult(
         "❌ Out of tolerance → reject or rework needed\n\n" +
-          costMessage
+          costMessage +
+          "\n\nRisk Score: " +
+          score +
+          " / 100"
       );
     }
   };
