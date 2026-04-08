@@ -21,7 +21,9 @@ function App() {
 
   if (a >= min && a <= max) {
     if (t < n * 0.01) {
-      setResult("⚠️ Within tolerance but very tight → high cost risk");
+      setResult(
+  "⚠️ Tolerance is very tight (<1%)\nLikely increases machining cost\nConsider relaxing if function allows"
+);
     } else {
       setResult("✅ Within tolerance → OK");
     }
