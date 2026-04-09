@@ -19,6 +19,8 @@ export default function App() {
   const [includeMaterial, setIncludeMaterial] = useState(false);
   const [materialCost, setMaterialCost] = useState("");
 
+  const [discount, setDiscount] = useState("");
+
   const [result, setResult] = useState("");
 
   const qualitySettings = {
@@ -39,6 +41,18 @@ export default function App() {
     return minutes / 60;
   };
 
+  const getProductionInfo = (qty) => {
+    if (qty >= 200) {
+      return { label: "Full Serial Production", suggestion: "20–35%" };
+    } else if (qty >= 50) {
+      return { label: "Mid Serial Production", suggestion: "10–20%" };
+    } else if (qty >= 10) {
+      return { label: "Mini Serial Production", suggestion: "5–10%" };
+    } else {
+      return { label: "Single / Low Volume", suggestion: "-" };
+    }
+  };
+
   const handleCalculate = () => {
     const feed = qualitySettings[quality].feed;
     const rate = supplierRates[supplier];
@@ -46,28 +60,43 @@ export default function App() {
     const h1 = calcTime(length1, width1, depth1, feed);
     const h2 = calcTime(length2, width2, depth2, feed);
 
-    const total1 = h1 * opQty1 * partQty;
-    const total2 = h2 * opQty2 * partQty;
+    const totalHours =
+      (h1 * opQty1 + h2 * opQty2) * partQty;
 
-    const totalHours = total1 + total2;
     const machiningCost = totalHours * rate;
 
     let materialTotal = 0;
-
     if (includeMaterial && materialCost) {
       materialTotal = Number(materialCost) * partQty;
     }
 
-    const finalCost = machiningCost + materialTotal;
+    const subtotal = machiningCost + materialTotal;
+
+    const discountValue = Number(discount) || 0;
+    const finalCost = subtotal * (1 - discountValue / 100);
+
+    const perPiece = finalCost / partQty;
+
+    const production = getProductionInfo(partQty);
 
     setResult(`
 Workpieces: ${partQty}
 
 Base Machining Cost: €${machiningCost.toFixed(0)}
-
 Material Cost: €${materialTotal.toFixed(0)}
 
-TOTAL COST: €${finalCost.toFixed(0)}
+Subtotal: €${subtotal.toFixed(0)}
+
+⚠️ ${production.label}
+Suggested Discount: ${production.suggestion}
+
+Applied Discount: -${discountValue}%
+
+--------------------------------
+
+Cost per Piece: €${perPiece.toFixed(2)}
+
+Grand Total (${partQty} pcs): €${finalCost.toFixed(0)}
 `);
   };
 
@@ -86,13 +115,13 @@ TOTAL COST: €${finalCost.toFixed(0)}
       <input placeholder="Length" onChange={e => setLength1(e.target.value)} /><br /><br />
       <input placeholder="Width" onChange={e => setWidth1(e.target.value)} /><br /><br />
       <input placeholder="Depth" onChange={e => setDepth1(e.target.value)} /><br /><br />
-      <input placeholder="Feature Count" type="number" value={opQty1} onChange={e => setOpQty1(Number(e.target.value))} /><br /><br />
+      <input type="number" value={opQty1} onChange={e => setOpQty1(Number(e.target.value))} /><br /><br />
 
       <h3>Operation 2</h3>
       <input placeholder="Length" onChange={e => setLength2(e.target.value)} /><br /><br />
       <input placeholder="Width" onChange={e => setWidth2(e.target.value)} /><br /><br />
       <input placeholder="Depth" onChange={e => setDepth2(e.target.value)} /><br /><br />
-      <input placeholder="Feature Count" type="number" value={opQty2} onChange={e => setOpQty2(Number(e.target.value))} /><br /><br />
+      <input type="number" value={opQty2} onChange={e => setOpQty2(Number(e.target.value))} /><br /><br />
 
       <h3>Quality</h3>
       <select onChange={e => setQuality(e.target.value)}>
@@ -115,18 +144,26 @@ TOTAL COST: €${finalCost.toFixed(0)}
           checked={includeMaterial}
           onChange={(e) => setIncludeMaterial(e.target.checked)}
         />
-        Include Material Cost
+        Include Material
       </label>
 
       <br /><br />
 
       {includeMaterial && (
         <input
-          placeholder="Material Cost per piece (€)"
           type="number"
+          placeholder="Material Cost per piece (€)"
           onChange={(e) => setMaterialCost(e.target.value)}
         />
       )}
+
+      <h3>Discount (%)</h3>
+      <input
+        type="number"
+        placeholder="Optional"
+        value={discount}
+        onChange={(e) => setDiscount(e.target.value)}
+      />
 
       <br /><br />
 
