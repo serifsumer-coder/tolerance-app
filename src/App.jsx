@@ -1,26 +1,33 @@
 import { useState } from "react";
 
 export default function App() {
-  // TOLERANCE STATE
+  // TOLERANCE
   const [nominal, setNominal] = useState("");
   const [tol, setTol] = useState("");
   const [actual, setActual] = useState("");
   const [tolResult, setTolResult] = useState("");
 
-  // MACHINING STATE
+  // MACHINING
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [depth, setDepth] = useState("");
   const [quality, setQuality] = useState("balanced");
+  const [supplier, setSupplier] = useState("B");
   const [machResult, setMachResult] = useState("");
 
   const qualitySettings = {
-    high: { feed: 2000, rpm: 8000, label: "🟢 Premium Finish (Rz ~3 μm)" },
-    balanced: { feed: 3000, rpm: 7000, label: "🟡 Balanced (Rz ~10 μm)" },
-    cost: { feed: 4500, rpm: 5500, label: "🔴 Cost Optimized (Rz ~25 μm)" }
+    high: { feed: 2000, rpm: 8000, label: "🟢 Premium Finish" },
+    balanced: { feed: 3000, rpm: 7000, label: "🟡 Balanced" },
+    cost: { feed: 4500, rpm: 5500, label: "🔴 Cost Optimized" }
   };
 
-  // TOLERANCE LOGIC
+  const supplierRates = {
+    A: { rate: 55, label: "🟢 A Tier (Premium Supplier)" },
+    B: { rate: 45, label: "🟡 B Tier (Balanced Supplier)" },
+    C: { rate: 35, label: "🔴 C Tier (Cost Supplier)" }
+  };
+
+  // TOLERANCE
   const handleTolerance = () => {
     const n = Number(nominal);
     const t = Number(tol);
@@ -45,7 +52,7 @@ export default function App() {
     }
   };
 
-  // MACHINING LOGIC
+  // MACHINING + PRICING
   const handleMachining = () => {
     const L = Number(length);
     const W = Number(width);
@@ -57,16 +64,28 @@ export default function App() {
     }
 
     const { feed, rpm, label } = qualitySettings[quality];
+    const { rate, label: supplierLabel } = supplierRates[supplier];
 
     const minutes = (L * W * D) / feed / 100;
     const hours = minutes / 60;
 
+    const cost = hours * rate;
+
+    const low = cost * 0.9;
+    const high = cost * 1.2;
+
     setMachResult(
-      `${label}
+`${label}
+${supplierLabel}
 
 ⏱ Time: ${hours.toFixed(2)} h
-⚙️ Feed: ${feed} mm/min
-🔄 RPM: ${rpm}`
+💶 Estimated Cost: €${cost.toFixed(0)}
+
+📊 Expected Range:
+€${low.toFixed(0)} – €${high.toFixed(0)}
+
+💡 Tip:
+Suppliers may quote around this range depending on complexity`
     );
   };
 
@@ -74,66 +93,38 @@ export default function App() {
     <div style={{ padding: "40px", textAlign: "center" }}>
       <h1>Manufacturing Decision Tool</h1>
 
-      {/* TOLERANCE BLOCK */}
+      {/* TOLERANCE */}
       <h2>Tolerance Check</h2>
 
-      <input
-        placeholder="Nominal"
-        value={nominal}
-        onChange={(e) => setNominal(e.target.value)}
-      />
-      <br /><br />
+      <input placeholder="Nominal" value={nominal} onChange={e => setNominal(e.target.value)} /><br /><br />
+      <input placeholder="Tolerance" value={tol} onChange={e => setTol(e.target.value)} /><br /><br />
+      <input placeholder="Actual" value={actual} onChange={e => setActual(e.target.value)} /><br /><br />
 
-      <input
-        placeholder="Tolerance (±)"
-        value={tol}
-        onChange={(e) => setTol(e.target.value)}
-      />
-      <br /><br />
+      <button onClick={handleTolerance}>Check</button>
 
-      <input
-        placeholder="Actual"
-        value={actual}
-        onChange={(e) => setActual(e.target.value)}
-      />
-      <br /><br />
-
-      <button onClick={handleTolerance}>Check Tolerance</button>
-
-      <div style={{ margin: "20px", whiteSpace: "pre-line" }}>
-        {tolResult}
-      </div>
+      <div style={{ margin: "20px" }}>{tolResult}</div>
 
       <hr />
 
-      {/* MACHINING BLOCK */}
-      <h2>Machining Estimator</h2>
+      {/* MACHINING */}
+      <h2>Machining + Pricing</h2>
 
-      <input
-        placeholder="Length (mm)"
-        value={length}
-        onChange={(e) => setLength(e.target.value)}
-      />
+      <input placeholder="Length" value={length} onChange={e => setLength(e.target.value)} /><br /><br />
+      <input placeholder="Width" value={width} onChange={e => setWidth(e.target.value)} /><br /><br />
+      <input placeholder="Depth" value={depth} onChange={e => setDepth(e.target.value)} /><br /><br />
+
+      <select value={quality} onChange={e => setQuality(e.target.value)}>
+        <option value="high">Premium</option>
+        <option value="balanced">Balanced</option>
+        <option value="cost">Cost</option>
+      </select>
+
       <br /><br />
 
-      <input
-        placeholder="Width (mm)"
-        value={width}
-        onChange={(e) => setWidth(e.target.value)}
-      />
-      <br /><br />
-
-      <input
-        placeholder="Depth (mm)"
-        value={depth}
-        onChange={(e) => setDepth(e.target.value)}
-      />
-      <br /><br />
-
-      <select value={quality} onChange={(e) => setQuality(e.target.value)}>
-        <option value="high">🟢 Premium</option>
-        <option value="balanced">🟡 Balanced</option>
-        <option value="cost">🔴 Cost</option>
+      <select value={supplier} onChange={e => setSupplier(e.target.value)}>
+        <option value="A">A Tier</option>
+        <option value="B">B Tier</option>
+        <option value="C">C Tier</option>
       </select>
 
       <br /><br />
