@@ -1,13 +1,11 @@
 import { useState } from "react";
 
 export default function App() {
-  // TOLERANCE
   const [nominal, setNominal] = useState("");
   const [tol, setTol] = useState("");
   const [actual, setActual] = useState("");
   const [tolResult, setTolResult] = useState("");
 
-  // MACHINING
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [depth, setDepth] = useState("");
@@ -54,7 +52,6 @@ export default function App() {
     }
   };
 
-  // TOLERANCE
   const handleTolerance = () => {
     const n = Number(nominal);
     const t = Number(tol);
@@ -79,7 +76,6 @@ export default function App() {
     }
   };
 
-  // MACHINING + PRICING
   const handleMachining = () => {
     const L = Number(length);
     const W = Number(width);
@@ -90,7 +86,7 @@ export default function App() {
       return;
     }
 
-    const { feed, rpm, label } = qualitySettings[quality];
+    const { feed, label } = qualitySettings[quality];
     const { rate, label: supplierLabel } = supplierRates[supplier];
 
     const minutes = (L * W * D) / feed / 100;
@@ -116,14 +112,10 @@ Suppliers may quote around this range depending on complexity`
     );
   };
 
-  const supplierDescription = supplierRates[supplier].desc;
-  const qualityDescription = qualitySettings[quality].desc;
-
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
       <h1>Manufacturing Decision Tool</h1>
 
-      {/* TOLERANCE */}
       <h2>Tolerance Check</h2>
 
       <input placeholder="Nominal" value={nominal} onChange={e => setNominal(e.target.value)} /><br /><br />
@@ -136,12 +128,16 @@ Suppliers may quote around this range depending on complexity`
 
       <hr />
 
-      {/* MACHINING */}
       <h2>Machining + Pricing</h2>
 
       <input placeholder="Length" value={length} onChange={e => setLength(e.target.value)} /><br /><br />
       <input placeholder="Width" value={width} onChange={e => setWidth(e.target.value)} /><br /><br />
       <input placeholder="Depth" value={depth} onChange={e => setDepth(e.target.value)} /><br /><br />
+
+      {/* 🔥 QUALITY TITLE */}
+      <div style={{ marginTop: "20px", fontWeight: "bold" }}>
+        Machining Quality Selection
+      </div>
 
       <select value={quality} onChange={e => setQuality(e.target.value)}>
         <option value="high">Premium</option>
@@ -149,12 +145,16 @@ Suppliers may quote around this range depending on complexity`
         <option value="cost">Cost</option>
       </select>
 
-      {/* 🔥 QUALITY DESC */}
-      <div style={{ marginTop: "10px", fontSize: "14px", opacity: 0.8 }}>
-        {qualityDescription}
+      <div style={{ marginTop: "8px", fontSize: "14px", opacity: 0.8 }}>
+        {qualitySettings[quality].desc}
       </div>
 
       <br /><br />
+
+      {/* 🔥 SUPPLIER TITLE */}
+      <div style={{ marginTop: "20px", fontWeight: "bold" }}>
+        Supplier Type Selection
+      </div>
 
       <select value={supplier} onChange={e => setSupplier(e.target.value)}>
         <option value="A">A Tier</option>
@@ -162,9 +162,8 @@ Suppliers may quote around this range depending on complexity`
         <option value="C">C Tier</option>
       </select>
 
-      {/* 🔥 SUPPLIER DESC */}
-      <div style={{ marginTop: "10px", fontSize: "14px", opacity: 0.8 }}>
-        {supplierDescription}
+      <div style={{ marginTop: "8px", fontSize: "14px", opacity: 0.8 }}>
+        {supplierRates[supplier].desc}
       </div>
 
       <br /><br />
