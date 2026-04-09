@@ -1,103 +1,92 @@
 import { useState } from "react";
 
-function App() {
-  const [nominal, setNominal] = useState("");
-  const [tolerance, setTolerance] = useState("");
-  const [actual, setActual] = useState("");
+export default function App() {
+  const [length, setLength] = useState("");
+  const [width, setWidth] = useState("");
+  const [depth, setDepth] = useState("");
+  const [quality, setQuality] = useState("balanced");
   const [result, setResult] = useState("");
 
-  const handleCheck = () => {
-    const n = parseFloat(nominal);
-    const t = parseFloat(tolerance);
-    const a = parseFloat(actual);
+  const qualitySettings = {
+    high: {
+      feed: 2000,
+      rpm: 8000,
+      label: "🟢 Premium Finish (Rz ~3 μm)"
+    },
+    balanced: {
+      feed: 3000,
+      rpm: 7000,
+      label: "🟡 Balanced (Rz ~10 μm)"
+    },
+    cost: {
+      feed: 4500,
+      rpm: 5500,
+      label: "🔴 Cost Optimized (Rz ~25 μm)"
+    }
+  };
 
-    if (isNaN(n) || isNaN(t) || isNaN(a)) {
-      setResult("⚠️ Please enter all values");
+  const handleCheck = () => {
+    const L = Number(length);
+    const W = Number(width);
+    const D = Number(depth);
+
+    if (!L || !W || !D) {
+      setResult("❗ Please fill all fields");
       return;
     }
 
-    const min = n - t;
-    const max = n + t;
+    const { feed, rpm, label } = qualitySettings[quality];
 
-    const ratio = t / n;
+    // Basit ama mantıklı model (şimdilik)
+    const minutes = (L * W * D) / feed / 100;
+    const hours = minutes / 60;
 
-    let costMessage = "";
-    let score = 0;
+    setResult(
+      `${label}
 
-    if (ratio < 0.01) {
-      costMessage = "💸 Cost impact: HIGH";
-      score = 90;
-    } else if (ratio < 0.03) {
-      costMessage = "💰 Cost impact: MEDIUM";
-      score = 60;
-    } else {
-      costMessage = "💲 Cost impact: LOW";
-      score = 20;
-    }
-
-    if (a >= min && a <= max) {
-      if (ratio < 0.01) {
-        setResult(
-          "⚠️ Tolerance is very tight (<1%)\n" +
-            "Likely increases machining cost\n" +
-            "Consider relaxing if function allows\n\n" +
-            costMessage +
-            "\n\nRisk Score: " +
-            score +
-            " / 100"
-        );
-      } else {
-        setResult(
-          "✅ Within tolerance → OK\n\n" +
-            costMessage +
-            "\n\nRisk Score: " +
-            score +
-            " / 100"
-        );
-      }
-    } else {
-      setResult(
-        "❌ Out of tolerance → reject or rework needed\n\n" +
-          costMessage +
-          "\n\nRisk Score: " +
-          score +
-          " / 100"
-      );
-    }
+⏱ Time: ${hours.toFixed(2)} h
+⚙️ Feed: ${feed} mm/min
+🔄 RPM: ${rpm}`
+    );
   };
 
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
-      <h1>Tolerance Check Tool</h1>
+      <h1>Machining Estimator</h1>
 
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="number"
-          placeholder="Nominal (e.g. 100)"
-          value={nominal}
-          onChange={(e) => setNominal(e.target.value)}
-        />
-      </div>
+      <input
+        placeholder="Length (mm)"
+        value={length}
+        onChange={(e) => setLength(e.target.value)}
+      />
+      <br /><br />
 
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="number"
-          placeholder="Tolerance (e.g. 0.5)"
-          value={tolerance}
-          onChange={(e) => setTolerance(e.target.value)}
-        />
-      </div>
+      <input
+        placeholder="Width (mm)"
+        value={width}
+        onChange={(e) => setWidth(e.target.value)}
+      />
+      <br /><br />
 
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="number"
-          placeholder="Actual (e.g. 100.2)"
-          value={actual}
-          onChange={(e) => setActual(e.target.value)}
-        />
-      </div>
+      <input
+        placeholder="Depth (mm)"
+        value={depth}
+        onChange={(e) => setDepth(e.target.value)}
+      />
+      <br /><br />
 
-      <button onClick={handleCheck}>Check</button>
+      <select
+        value={quality}
+        onChange={(e) => setQuality(e.target.value)}
+      >
+        <option value="high">🟢 Premium</option>
+        <option value="balanced">🟡 Balanced</option>
+        <option value="cost">🔴 Cost</option>
+      </select>
+
+      <br /><br />
+
+      <button onClick={handleCheck}>Calculate</button>
 
       <div style={{ marginTop: "20px", whiteSpace: "pre-line" }}>
         {result}
@@ -105,5 +94,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
