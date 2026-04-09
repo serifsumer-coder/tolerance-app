@@ -16,9 +16,24 @@ export default function App() {
   const [machResult, setMachResult] = useState("");
 
   const qualitySettings = {
-    high: { feed: 2000, rpm: 8000, label: "🟢 Premium Finish" },
-    balanced: { feed: 3000, rpm: 7000, label: "🟡 Balanced" },
-    cost: { feed: 4500, rpm: 5500, label: "🔴 Cost Optimized" }
+    high: {
+      feed: 2000,
+      rpm: 8000,
+      label: "🟢 Premium Finish",
+      desc: "Best surface quality (Rz ~3 μm), slower but precise"
+    },
+    balanced: {
+      feed: 3000,
+      rpm: 7000,
+      label: "🟡 Balanced",
+      desc: "Good surface (Rz ~10 μm), optimal price-performance"
+    },
+    cost: {
+      feed: 4500,
+      rpm: 5500,
+      label: "🔴 Cost Optimized",
+      desc: "Rough finish (Rz ~25 μm), fastest and cheapest option"
+    }
   };
 
   const supplierRates = {
@@ -102,6 +117,7 @@ Suppliers may quote around this range depending on complexity`
   };
 
   const supplierDescription = supplierRates[supplier].desc;
+  const qualityDescription = qualitySettings[quality].desc;
 
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
@@ -133,6 +149,11 @@ Suppliers may quote around this range depending on complexity`
         <option value="cost">Cost</option>
       </select>
 
+      {/* 🔥 QUALITY DESC */}
+      <div style={{ marginTop: "10px", fontSize: "14px", opacity: 0.8 }}>
+        {qualityDescription}
+      </div>
+
       <br /><br />
 
       <select value={supplier} onChange={e => setSupplier(e.target.value)}>
@@ -141,7 +162,7 @@ Suppliers may quote around this range depending on complexity`
         <option value="C">C Tier</option>
       </select>
 
-      {/* 🔥 NEW: DESCRIPTION */}
+      {/* 🔥 SUPPLIER DESC */}
       <div style={{ marginTop: "10px", fontSize: "14px", opacity: 0.8 }}>
         {supplierDescription}
       </div>
