@@ -22,9 +22,21 @@ export default function App() {
   };
 
   const supplierRates = {
-    A: { rate: 55, label: "🟢 A Tier (Premium Supplier)" },
-    B: { rate: 45, label: "🟡 B Tier (Balanced Supplier)" },
-    C: { rate: 35, label: "🔴 C Tier (Cost Supplier)" }
+    A: {
+      rate: 55,
+      label: "🟢 A Tier (Premium Supplier)",
+      desc: "High reliability, advanced machines, Western Europe pricing"
+    },
+    B: {
+      rate: 45,
+      label: "🟡 B Tier (Balanced Supplier)",
+      desc: "Best price-performance, standard industrial capability"
+    },
+    C: {
+      rate: 35,
+      label: "🔴 C Tier (Cost Supplier)",
+      desc: "Low cost, small workshops, higher uncertainty"
+    }
   };
 
   // TOLERANCE
@@ -89,6 +101,8 @@ Suppliers may quote around this range depending on complexity`
     );
   };
 
+  const supplierDescription = supplierRates[supplier].desc;
+
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
       <h1>Manufacturing Decision Tool</h1>
@@ -126,6 +140,11 @@ Suppliers may quote around this range depending on complexity`
         <option value="B">B Tier</option>
         <option value="C">C Tier</option>
       </select>
+
+      {/* 🔥 NEW: DESCRIPTION */}
+      <div style={{ marginTop: "10px", fontSize: "14px", opacity: 0.8 }}>
+        {supplierDescription}
+      </div>
 
       <br /><br />
 
