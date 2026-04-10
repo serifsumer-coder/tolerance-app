@@ -3,41 +3,37 @@ import { useState, useEffect } from "react";
 export default function App() {
   const [partQty, setPartQty] = useState(1);
 
+  // SLOT
+  const [slots, setSlots] = useState([
+    { length: "", width: "", depth: "", qty: 1 }
+  ]);
+
+  // HOLE
   const [holes, setHoles] = useState([
-    { diameter: "", depth: "", qty: 1, quality: "balanced" }
+    { depth: "", qty: 1, quality: "balanced" }
   ]);
 
   const [supplier, setSupplier] = useState("B");
   const [discount, setDiscount] = useState("");
   const [suggestion, setSuggestion] = useState("");
-
   const [result, setResult] = useState("");
 
   const supplierRates = {
-    A: { rate: 55, label: "🟢 A Tier (Premium)" },
-    B: { rate: 45, label: "🟡 B Tier (Balanced)" },
-    C: { rate: 35, label: "🔴 C Tier (Cost)" }
+    A: { rate: 55, desc: "High-end EU supplier" },
+    B: { rate: 45, desc: "Balanced industrial supplier" },
+    C: { rate: 35, desc: "Low cost workshop" }
   };
 
   const qualityData = {
-    high: {
-      label: "🟢 High (Slow-Precise)",
-      peck: 10,
-      peckTime: 32,
-      setup: 18
-    },
-    balanced: {
-      label: "🟡 Balanced",
-      peck: 15,
-      peckTime: 16,
-      setup: 18
-    },
-    cost: {
-      label: "🔴 Cost (Fast)",
-      peck: 20,
-      peckTime: 10.5,
-      setup: 18
-    }
+    high: { peck: 10, peckTime: 32, setup: 18 },
+    balanced: { peck: 15, peckTime: 16, setup: 18 },
+    cost: { peck: 20, peckTime: 10.5, setup: 18 }
+  };
+
+  const feedRates = {
+    high: 2000,
+    balanced: 3000,
+    cost: 4500
   };
 
   const getSuggestion = (qty) => {
@@ -51,47 +47,42 @@ export default function App() {
     setSuggestion(getSuggestion(partQty));
   }, [partQty]);
 
-  const addHole = () => {
-    setHoles([
-      ...holes,
-      { diameter: "", depth: "", qty: 1, quality: "balanced" }
-    ]);
+  // SLOT TIME
+  const calcSlotTime = (s) => {
+    if (!s.length || !s.width || !s.depth) return 0;
+
+    const volume = s.length * s.width * s.depth;
+    const feed = feedRates["balanced"]; // basit tutuyoruz
+
+    const minutes = volume / feed / 100;
+    return (minutes / 60) * s.qty;
   };
 
-  const updateHole = (i, field, value) => {
-    const newHoles = [...holes];
-    newHoles[i][field] = value;
-    setHoles(newHoles);
-  };
-
-  // ✅ FIXED TIME CALC (SAAT DÖNER)
+  // HOLE TIME
   const calcHoleTime = (h) => {
     if (!h.depth || !h.qty) return 0;
 
     const q = qualityData[h.quality];
 
     const peckCount = Math.ceil(h.depth / q.peck);
-
-    const timePerHoleSec =
-      peckCount * q.peckTime + q.setup;
-
+    const timePerHoleSec = peckCount * q.peckTime + q.setup;
     const totalSec = timePerHoleSec * h.qty;
 
-    return (totalSec / 3600) * 1.15; // saat
+    return (totalSec / 3600) * 1.15;
   };
 
   const handleCalculate = () => {
-    const s = supplierRates[supplier];
+    const rate = supplierRates[supplier].rate;
 
-    let totalHours = 0;
+    let slotHours = 0;
+    let holeHours = 0;
 
-    holes.forEach(h => {
-      totalHours += calcHoleTime(h);
-    });
+    slots.forEach(s => slotHours += calcSlotTime(s));
+    holes.forEach(h => holeHours += calcHoleTime(h));
 
-    totalHours *= partQty;
+    const totalHours = (slotHours + holeHours) * partQty;
 
-    const machiningCost = totalHours * s.rate;
+    const machiningCost = totalHours * rate;
 
     const d = Number(discount) || 0;
     const finalCost = machiningCost * (1 - d / 100);
@@ -99,80 +90,74 @@ export default function App() {
     const perPiece = finalCost / partQty;
 
     setResult(`
-==============================
-MANUFACTURING SUMMARY
-==============================
+========== SUMMARY ==========
 
 Workpieces: ${partQty}
 
 Supplier:
-${s.label}
-Rate: €${s.rate}/hr
+€${rate}/hr
+${supplierRates[supplier].desc}
 
 Production:
 ${suggestion}
 
-------------------------------
+----------------------------
 
-Total Time:
+Slot Time: ${slotHours.toFixed(2)} h
+Hole Time: ${holeHours.toFixed(2)} h
+
+TOTAL TIME:
 ${totalHours.toFixed(2)} h
 
-Base Machining Cost:
+Machining Cost:
 €${machiningCost.toLocaleString()}
 
-Discount:
--${d}%
+Discount: -${d}%
 
-------------------------------
+----------------------------
 
 Cost per Piece:
 €${perPiece.toFixed(2)}
 
 GRAND TOTAL:
 €${finalCost.toLocaleString()}
-
-==============================
 `);
   };
 
   return (
-    <div style={{ padding: 40, textAlign: "center" }}>
-      <h1>Hole Engine</h1>
+    <div style={{ padding: 40 }}>
+      <h1>Machining Estimator</h1>
 
-      <h3>Workpiece Quantity</h3>
-      <input
-        type="number"
-        value={partQty}
-        onChange={(e) => setPartQty(Number(e.target.value))}
-      />
+      <h3>Workpiece Qty</h3>
+      <input type="number" value={partQty} onChange={e => setPartQty(Number(e.target.value))} />
 
-      <h3>Hole Operations</h3>
+      <h3>Slots</h3>
+      {slots.map((s, i) => (
+        <div key={i}>
+          <input placeholder="Length" onChange={e => {
+            const arr = [...slots]; arr[i].length = e.target.value; setSlots(arr);
+          }} />
+          <input placeholder="Width" onChange={e => {
+            const arr = [...slots]; arr[i].width = e.target.value; setSlots(arr);
+          }} />
+          <input placeholder="Depth" onChange={e => {
+            const arr = [...slots]; arr[i].depth = e.target.value; setSlots(arr);
+          }} />
+        </div>
+      ))}
 
+      <h3>Holes</h3>
       {holes.map((h, i) => (
-        <div key={i} style={{ marginBottom: 15 }}>
-          <input
-            placeholder="Diameter (mm)"
-            value={h.diameter}
-            onChange={(e) => updateHole(i, "diameter", e.target.value)}
-          />
-
-          <input
-            placeholder="Depth (mm)"
-            value={h.depth}
-            onChange={(e) => updateHole(i, "depth", e.target.value)}
-          />
-
-          <input
-            type="number"
-            value={h.qty}
-            onChange={(e) => updateHole(i, "qty", Number(e.target.value))}
-          />
-
-          {/* 🔥 HER HOLE İÇİN QUALITY */}
-          <select
-            value={h.quality}
-            onChange={(e) => updateHole(i, "quality", e.target.value)}
-          >
+        <div key={i}>
+          <input placeholder="Depth" onChange={e => {
+            const arr = [...holes]; arr[i].depth = e.target.value; setHoles(arr);
+          }} />
+          <input type="number" value={h.qty} onChange={e => {
+            const arr = [...holes]; arr[i].qty = Number(e.target.value); setHoles(arr);
+          }} />
+          <select value={h.quality} onChange={e => {
+            const arr = [...holes]; arr[i].quality = e.target.value; setHoles(arr);
+          }}>
             <option value="high">High</option>
             <option value="balanced">Balanced</option>
             <option value="cost">Cost</option>
@@ -180,33 +165,29 @@ GRAND TOTAL:
         </div>
       ))}
 
-      <button onClick={addHole}>+ Add Hole</button>
-
-      <h3>Supplier Selection</h3>
-      <select
-        value={supplier}
-        onChange={(e) => setSupplier(e.target.value)}
-      >
+      <h3>Supplier</h3>
+      <select value={supplier} onChange={e => setSupplier(e.target.value)}>
         <option value="A">A Tier</option>
         <option value="B">B Tier</option>
         <option value="C">C Tier</option>
       </select>
 
-      <h3>Discount (%)</h3>
+      {/* 🔥 DESCRIPTION SABİT */}
+      <div style={{ marginTop: 5 }}>
+        {supplierRates[supplier].desc}
+      </div>
+
+      <h3>Discount</h3>
       <input
-        type="number"
         placeholder={suggestion}
         value={discount}
-        onChange={(e) => setDiscount(e.target.value)}
+        onChange={e => setDiscount(e.target.value)}
       />
 
       <br /><br />
-
       <button onClick={handleCalculate}>Calculate</button>
 
-      <div style={{ whiteSpace: "pre-line", marginTop: 20 }}>
-        {result}
-      </div>
+      <pre>{result}</pre>
     </div>
   );
 }
