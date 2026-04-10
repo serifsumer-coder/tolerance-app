@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
   const [partQty, setPartQty] = useState(1);
@@ -20,49 +20,48 @@ export default function App() {
   const [materialCost, setMaterialCost] = useState("");
 
   const [discount, setDiscount] = useState("");
+  const [suggestion, setSuggestion] = useState("");
 
   const [result, setResult] = useState("");
 
   const qualitySettings = {
-    high: { feed: 2000 },
-    balanced: { feed: 3000 },
-    cost: { feed: 4500 }
+    high: { feed: 2000, desc: "Best surface (Rz ~3 μm), slower but precise" },
+    balanced: { feed: 3000, desc: "Good surface (Rz ~10 μm), balanced" },
+    cost: { feed: 4500, desc: "Rough (Rz ~25 μm), fastest & cheapest" }
   };
 
   const supplierRates = {
-    A: 55,
-    B: 45,
-    C: 35
+    A: { rate: 55, desc: "High-end supplier, EU pricing" },
+    B: { rate: 45, desc: "Balanced supplier, best value" },
+    C: { rate: 35, desc: "Low cost, small workshops" }
   };
 
   const calcTime = (L, W, D, feed) => {
     if (!L || !W || !D) return 0;
-    const minutes = (L * W * D) / feed / 100;
-    return minutes / 60;
+    return (L * W * D) / feed / 100 / 60;
   };
 
-  const getProductionInfo = (qty) => {
-    if (qty >= 200) {
-      return { label: "Full Serial Production", suggestion: "20–35%" };
-    } else if (qty >= 50) {
-      return { label: "Mid Serial Production", suggestion: "10–20%" };
-    } else if (qty >= 10) {
-      return { label: "Mini Serial Production", suggestion: "5–10%" };
-    } else {
-      return { label: "Single / Low Volume", suggestion: "-" };
-    }
+  const getSuggestion = (qty) => {
+    if (qty >= 200) return { label: "Full Serial", range: "20–35%" };
+    if (qty >= 50) return { label: "Mid Serial", range: "10–20%" };
+    if (qty >= 10) return { label: "Mini Serial", range: "5–10%" };
+    return { label: "Low Volume", range: "-" };
   };
+
+  // 🔥 AUTO SUGGESTION
+  useEffect(() => {
+    const s = getSuggestion(partQty);
+    setSuggestion(`${s.label} → ${s.range}`);
+  }, [partQty]);
 
   const handleCalculate = () => {
     const feed = qualitySettings[quality].feed;
-    const rate = supplierRates[supplier];
+    const rate = supplierRates[supplier].rate;
 
     const h1 = calcTime(length1, width1, depth1, feed);
     const h2 = calcTime(length2, width2, depth2, feed);
 
-    const totalHours =
-      (h1 * opQty1 + h2 * opQty2) * partQty;
-
+    const totalHours = (h1 * opQty1 + h2 * opQty2) * partQty;
     const machiningCost = totalHours * rate;
 
     let materialTotal = 0;
@@ -72,31 +71,26 @@ export default function App() {
 
     const subtotal = machiningCost + materialTotal;
 
-    const discountValue = Number(discount) || 0;
-    const finalCost = subtotal * (1 - discountValue / 100);
+    const d = Number(discount) || 0;
+    const finalCost = subtotal * (1 - d / 100);
 
     const perPiece = finalCost / partQty;
-
-    const production = getProductionInfo(partQty);
 
     setResult(`
 Workpieces: ${partQty}
 
-Base Machining Cost: €${machiningCost.toFixed(0)}
-Material Cost: €${materialTotal.toFixed(0)}
+Base Machining Cost: €${machiningCost.toLocaleString()}
+Material Cost: €${materialTotal.toLocaleString()}
 
-Subtotal: €${subtotal.toFixed(0)}
+Subtotal: €${subtotal.toLocaleString()}
 
-⚠️ ${production.label}
-Suggested Discount: ${production.suggestion}
-
-Applied Discount: -${discountValue}%
+Applied Discount: -${d}%
 
 --------------------------------
 
 Cost per Piece: €${perPiece.toFixed(2)}
 
-Grand Total (${partQty} pcs): €${finalCost.toFixed(0)}
+Grand Total (${partQty} pcs): €${finalCost.toLocaleString()}
 `);
   };
 
@@ -105,11 +99,7 @@ Grand Total (${partQty} pcs): €${finalCost.toFixed(0)}
       <h1>Manufacturing Estimator</h1>
 
       <h3>Workpiece Quantity</h3>
-      <input
-        type="number"
-        value={partQty}
-        onChange={(e) => setPartQty(Number(e.target.value))}
-      />
+      <input type="number" value={partQty} onChange={e => setPartQty(Number(e.target.value))} />
 
       <h3>Operation 1</h3>
       <input placeholder="Length" onChange={e => setLength1(e.target.value)} /><br /><br />
@@ -124,26 +114,24 @@ Grand Total (${partQty} pcs): €${finalCost.toFixed(0)}
       <input type="number" value={opQty2} onChange={e => setOpQty2(Number(e.target.value))} /><br /><br />
 
       <h3>Quality</h3>
-      <select onChange={e => setQuality(e.target.value)}>
+      <select value={quality} onChange={e => setQuality(e.target.value)}>
         <option value="high">Premium</option>
         <option value="balanced">Balanced</option>
         <option value="cost">Cost</option>
       </select>
+      <div style={{ fontSize: 14 }}>{qualitySettings[quality].desc}</div>
 
       <h3>Supplier</h3>
-      <select onChange={e => setSupplier(e.target.value)}>
+      <select value={supplier} onChange={e => setSupplier(e.target.value)}>
         <option value="A">A</option>
         <option value="B">B</option>
         <option value="C">C</option>
       </select>
+      <div style={{ fontSize: 14 }}>{supplierRates[supplier].desc}</div>
 
       <h3>Material</h3>
       <label>
-        <input
-          type="checkbox"
-          checked={includeMaterial}
-          onChange={(e) => setIncludeMaterial(e.target.checked)}
-        />
+        <input type="checkbox" checked={includeMaterial} onChange={e => setIncludeMaterial(e.target.checked)} />
         Include Material
       </label>
 
@@ -153,16 +141,17 @@ Grand Total (${partQty} pcs): €${finalCost.toFixed(0)}
         <input
           type="number"
           placeholder="Material Cost per piece (€)"
-          onChange={(e) => setMaterialCost(e.target.value)}
+          style={{ width: "260px" }}
+          onChange={e => setMaterialCost(e.target.value)}
         />
       )}
 
       <h3>Discount (%)</h3>
       <input
         type="number"
-        placeholder="Optional"
+        placeholder={suggestion}
         value={discount}
-        onChange={(e) => setDiscount(e.target.value)}
+        onChange={e => setDiscount(e.target.value)}
       />
 
       <br /><br />
