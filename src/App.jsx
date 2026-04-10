@@ -4,39 +4,52 @@ export default function App() {
   const [partQty, setPartQty] = useState(1);
 
   const [holes, setHoles] = useState([
-    { diameter: "", depth: "", qty: 1, type: "drilling" }
+    { diameter: "", depth: "", qty: 1 }
   ]);
 
   const [quality, setQuality] = useState("balanced");
   const [supplier, setSupplier] = useState("B");
-
   const [discount, setDiscount] = useState("");
-  const [suggestion, setSuggestion] = useState("");
 
+  const [suggestion, setSuggestion] = useState("");
   const [result, setResult] = useState("");
 
+  // 🔧 QUALITY DATA (senin verdiğin model)
+  const qualityData = {
+    high: {
+      label: "🟢 H7 Tolerance (Slow-Precise)",
+      peck: 10,
+      peckTime: 32,
+      setup: 18,
+      rz: "1.5"
+    },
+    balanced: {
+      label: "🟡 H8 Tolerance (Optimal)",
+      peck: 15,
+      peckTime: 16,
+      setup: 18,
+      rz: "6"
+    },
+    cost: {
+      label: "🔴 H10 Tolerance (Fast)",
+      peck: 20,
+      peckTime: 10.5,
+      setup: 18,
+      rz: "20"
+    }
+  };
+
   const supplierRates = {
-    A: 55,
-    B: 45,
-    C: 35
-  };
-
-  const qualityFactor = {
-    high: 0.8,
-    balanced: 1,
-    cost: 1.5
-  };
-
-  const holeBase = {
-    drilling: 120,
-    deep: 60
+    A: { rate: 55, label: "🟢 A Tier (Premium)" },
+    B: { rate: 45, label: "🟡 B Tier (Balanced)" },
+    C: { rate: 35, label: "🔴 C Tier (Cost)" }
   };
 
   const getSuggestion = (qty) => {
-    if (qty >= 200) return "20–35%";
-    if (qty >= 50) return "10–20%";
-    if (qty >= 10) return "5–10%";
-    return "-";
+    if (qty >= 200) return "Full Serial Production → 20–35%";
+    if (qty >= 50) return "Mid Serial Production → 10–20%";
+    if (qty >= 10) return "Mini Serial Production → 5–10%";
+    return "Low Volume";
   };
 
   useEffect(() => {
@@ -44,26 +57,34 @@ export default function App() {
   }, [partQty]);
 
   const addHole = () => {
-    setHoles([...holes, { diameter: "", depth: "", qty: 1, type: "drilling" }]);
+    setHoles([...holes, { diameter: "", depth: "", qty: 1 }]);
   };
 
-  const updateHole = (index, field, value) => {
+  const updateHole = (i, field, value) => {
     const newHoles = [...holes];
-    newHoles[index][field] = value;
+    newHoles[i][field] = value;
     setHoles(newHoles);
   };
 
+  // 🔥 YENİ DOĞRU FORMÜL
   const calcHoleTime = (h) => {
-    if (!h.diameter || !h.depth) return 0;
+    if (!h.depth || !h.qty) return 0;
 
-    const base = holeBase[h.type];
-    const qFactor = qualityFactor[quality];
+    const q = qualityData[quality];
 
-    return (h.diameter * h.depth * h.qty) / (base * qFactor) / 60;
+    const peckCount = Math.ceil(h.depth / q.peck);
+
+    const timePerHoleSec =
+      peckCount * q.peckTime + q.setup;
+
+    const totalSec = timePerHoleSec * h.qty;
+
+    return (totalSec / 60) * 1.15; // %15 ek
   };
 
   const handleCalculate = () => {
-    const rate = supplierRates[supplier];
+    const q = qualityData[quality];
+    const s = supplierRates[supplier];
 
     let totalHours = 0;
 
@@ -73,7 +94,7 @@ export default function App() {
 
     totalHours *= partQty;
 
-    const machiningCost = totalHours * rate;
+    const machiningCost = totalHours * s.rate;
 
     const d = Number(discount) || 0;
     const finalCost = machiningCost * (1 - d / 100);
@@ -81,19 +102,43 @@ export default function App() {
     const perPiece = finalCost / partQty;
 
     setResult(`
-Workpieces: ${partQty}
+==============================
+🧾 MANUFACTURING SUMMARY
+==============================
 
-Total Time: ${totalHours.toFixed(2)} h
+📦 Workpieces: ${partQty}
 
-Base Machining Cost: €${machiningCost.toLocaleString()}
+🎯 Quality:
+${q.label}
+Rz ≈ ${q.rz} μm
 
-Applied Discount: -${d}%
+🏭 Supplier:
+${s.label}
+Rate: €${s.rate}/hr
 
---------------------------------
+📊 Production:
+${suggestion}
 
-Cost per Piece: €${perPiece.toFixed(2)}
+------------------------------
 
-Grand Total (${partQty} pcs): €${finalCost.toLocaleString()}
+⏱ Total Time:
+${totalHours.toFixed(2)} h
+
+💰 Base Machining Cost:
+€${machiningCost.toLocaleString()}
+
+📉 Discount:
+-${d}%
+
+------------------------------
+
+💵 Cost per Piece:
+€${perPiece.toFixed(2)}
+
+🏁 GRAND TOTAL:
+€${finalCost.toLocaleString()}
+
+==============================
 `);
   };
 
@@ -102,45 +147,56 @@ Grand Total (${partQty} pcs): €${finalCost.toLocaleString()}
       <h1>Hole Engine</h1>
 
       <h3>Workpiece Quantity</h3>
-      <input type="number" value={partQty} onChange={e => setPartQty(Number(e.target.value))} />
+      <input
+        type="number"
+        value={partQty}
+        onChange={(e) => setPartQty(Number(e.target.value))}
+      />
 
-      <h3>Holes</h3>
+      <h3>Hole Operations</h3>
 
       {holes.map((h, i) => (
-        <div key={i} style={{ marginBottom: 20 }}>
-          <input placeholder="Diameter" onChange={e => updateHole(i, "diameter", e.target.value)} />
-          <input placeholder="Depth" onChange={e => updateHole(i, "depth", e.target.value)} />
-          <input type="number" value={h.qty} onChange={e => updateHole(i, "qty", e.target.value)} />
-
-          <select onChange={e => updateHole(i, "type", e.target.value)}>
-            <option value="drilling">Drilling</option>
-            <option value="deep">Deep Drilling</option>
-          </select>
+        <div key={i} style={{ marginBottom: 15 }}>
+          <input
+            placeholder="Diameter (mm)"
+            onChange={(e) => updateHole(i, "diameter", e.target.value)}
+          />
+          <input
+            placeholder="Depth (mm)"
+            onChange={(e) => updateHole(i, "depth", e.target.value)}
+          />
+          <input
+            type="number"
+            value={h.qty}
+            onChange={(e) => updateHole(i, "qty", Number(e.target.value))}
+          />
         </div>
       ))}
 
       <button onClick={addHole}>+ Add Hole</button>
 
-      <h3>Quality</h3>
-      <select onChange={e => setQuality(e.target.value)}>
+      <h3>Quality Selection</h3>
+      <select onChange={(e) => setQuality(e.target.value)}>
         <option value="high">High</option>
         <option value="balanced">Balanced</option>
         <option value="cost">Cost</option>
       </select>
+      <div>{qualityData[quality].label}</div>
 
-      <h3>Supplier</h3>
-      <select onChange={e => setSupplier(e.target.value)}>
+      <h3>Supplier Selection</h3>
+      <select onChange={(e) => setSupplier(e.target.value)}>
         <option value="A">A</option>
         <option value="B">B</option>
         <option value="C">C</option>
       </select>
+      <div>{supplierRates[supplier].label}</div>
 
       <h3>Discount (%)</h3>
       <input
         type="number"
         placeholder={suggestion}
         value={discount}
-        onChange={e => setDiscount(e.target.value)}
+        onChange={(e) => setDiscount(e.target.value)}
       />
 
       <br /><br />
