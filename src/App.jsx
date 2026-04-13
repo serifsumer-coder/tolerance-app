@@ -16,12 +16,12 @@ export default function App() {
   const [supplier, setSupplier] = useState("B")
   const [result, setResult] = useState(null)
 
-  // 🔥 SLOT (DOĞRU MODELİN KORUNDU)
+  // 🔧 SLOT ENGINE
   const calculateSlotTime = (s) => {
-    const L = +s.length
-    const W = +s.width
-    const D = +s.depth
-    const count = +s.count || 1
+    const L = Number(s.length)
+    const W = Number(s.width)
+    const D = Number(s.depth)
+    const count = Number(s.count) || 1
 
     if (!L || !W || !D) return 0
 
@@ -35,17 +35,16 @@ export default function App() {
     }
 
     const volume = L * W * D
+    const minutes = volume / (feed * tool * map[s.quality])
 
-    const min = volume / (feed * tool * map[s.quality])
-
-    return (min / 60) * count
+    return (minutes / 60) * count
   }
 
-  // 🔥🔥🔥 YENİ HOLE ENGINE (EXCEL MODELİ)
+  // 🔥 FINAL HOLE ENGINE (EXCEL MATCH)
   const calculateHoleTime = (h) => {
 
-    const depth = +h.depth
-    const count = +h.count || 1
+    const depth = Number(h.depth)
+    const count = Number(h.count) || 1
 
     if (!depth) return 0
 
@@ -57,20 +56,21 @@ export default function App() {
 
     const c = config[h.quality]
 
-    const peckCount = Math.ceil(depth / c.peck)
+    // 🔧 minimum 1 peck
+    const peckCount = Math.max(1, Math.ceil(depth / c.peck))
 
     const perPeck = c.cut + c.retract + c.air
 
     let totalSeconds =
       (peckCount * perPeck)
-      + (0.3 * 60) // setup
+      + 18 // setup (0.3 min)
 
-    // 🔥 %15 safety margin
+    // 🔥 safety margin
     totalSeconds *= 1.15
 
-    const minutes = totalSeconds / 60
+    const hours = totalSeconds / 3600
 
-    return (minutes / 60) * count
+    return hours * count
   }
 
   const handleCalculate = () => {
@@ -83,20 +83,21 @@ export default function App() {
 
     const totalTime = slotTime + holeTime
 
+    // 🔥 GUARANTEED RATE
     const rateMap = {
-      A:55,
-      B:45,
-      C:35
+      A: 55,
+      B: 45,
+      C: 35
     }
 
-    const rate = rateMap[supplier]
+    const rate = rateMap[String(supplier)]
 
     const machiningCost = totalTime * rate
 
     const unitCost =
-      machiningCost + (+materialCost || 0)
+      machiningCost + Number(materialCost || 0)
 
-    const totalCost = unitCost * quantity
+    const totalCost = unitCost * Number(quantity || 1)
 
     setResult({
       slotTime,
@@ -109,7 +110,10 @@ export default function App() {
   }
 
   const f = (n) =>
-    new Intl.NumberFormat("en-US", { minimumFractionDigits:2 }).format(n)
+    new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(n)
 
   return (
     <div style={{padding:40, background:"#0f172a", color:"white", minHeight:"100vh"}}>
@@ -136,12 +140,6 @@ export default function App() {
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
-
-          <div style={{fontSize:12}}>
-            {s.quality==="high" && "High Quality (Precise / Slow)"}
-            {s.quality==="balanced" && "Balanced (Optimal)"}
-            {s.quality==="fast" && "Fast (Cost Efficient)"}
-          </div>
         </div>
       ))}
 
@@ -162,12 +160,6 @@ export default function App() {
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
-
-          <div style={{fontSize:12}}>
-            {h.quality==="high" && "High Quality (Peck drilling slow)"}
-            {h.quality==="balanced" && "Balanced drilling"}
-            {h.quality==="fast" && "Fast drilling"}
-          </div>
         </div>
       ))}
 
@@ -178,12 +170,12 @@ export default function App() {
       <h3 style={{marginTop:30}}>Supplier Selection</h3>
 
       <div style={{fontSize:12}}>
-        <span style={{color:"#4ade80"}}>●</span> A Tier Precision &nbsp;
-        <span style={{color:"#60a5fa"}}>●</span> B Tier Industrial &nbsp;
-        <span style={{color:"#f87171"}}>●</span> C Tier Cost
+        ● A Tier Precision &nbsp;
+        ● B Tier Industrial &nbsp;
+        ● C Tier Cost
       </div>
 
-      <select onChange={e=>setSupplier(e.target.value)}>
+      <select value={supplier} onChange={e=>setSupplier(e.target.value)}>
         <option value="A">A Tier - 55 €/h</option>
         <option value="B">B Tier - 45 €/h</option>
         <option value="C">C Tier - 35 €/h</option>
@@ -199,7 +191,7 @@ export default function App() {
           <p>Slot Time: {f(result.slotTime)} h</p>
           <p>Hole Time: {f(result.holeTime)} h</p>
 
-          <p>Total Machining Time: {f(result.totalTime)} h</p>
+          <p>Total Time: {f(result.totalTime)} h</p>
 
           <p>Machining Cost: €{f(result.machiningCost)}</p>
           <p>Material Cost: €{f(materialCost)}</p>
@@ -208,7 +200,6 @@ export default function App() {
           <h2>Total Cost: €{f(result.totalCost)}</h2>
         </div>
       )}
-
     </div>
   )
 }
