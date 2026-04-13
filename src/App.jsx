@@ -4,22 +4,22 @@ export default function App() {
   const [quantity, setQuantity] = useState(1)
 
   const [slots, setSlots] = useState([
-    { length: "", width: "", depth: "", quality: "balanced" }
+    { length: "", width: "", depth: "", count: 1, quality: "balanced" }
   ])
 
   const [holes, setHoles] = useState([
-    { diameter: "", depth: "", quality: "balanced" }
+    { diameter: "", depth: "", count: 1, quality: "balanced" }
   ])
 
   const [supplier, setSupplier] = useState("B")
-
   const [result, setResult] = useState(null)
 
-  // 🔥 SLOT ENGINE (FIXED)
+  // 🔥 SLOT ENGINE
   const calculateSlotTime = (slot) => {
     const L = parseFloat(slot.length)
     const W = parseFloat(slot.width)
     const D = parseFloat(slot.depth)
+    const count = parseFloat(slot.count) || 1
 
     if (!L || !W || !D) return 0
 
@@ -35,41 +35,43 @@ export default function App() {
     const efficiency = efficiencyMap[slot.quality] || 0.08
 
     const volume = L * W * D
-
     const timeMinutes = volume / (feed * tool * efficiency)
 
-    return timeMinutes / 60
+    return (timeMinutes / 60) * count
   }
 
   // 🔵 HOLE ENGINE
   const calculateHoleTime = (hole) => {
     const dia = parseFloat(hole.diameter)
     const dep = parseFloat(hole.depth)
+    const count = parseFloat(hole.count) || 1
 
     if (!dia || !dep) return 0
 
     const feed = 3000
 
-    const timeMinutes = (dep / feed) * 1000
+    const baseTime = (dep / feed) * 1000
 
-    return timeMinutes / 60
+    const qualityFactor = {
+      high: 1.3,
+      balanced: 1,
+      fast: 0.8
+    }
+
+    const factor = qualityFactor[hole.quality] || 1
+
+    return (baseTime * factor / 60) * count
   }
 
   const handleCalculate = () => {
     let slotTime = 0
     let holeTime = 0
 
-    slots.forEach(s => {
-      slotTime += calculateSlotTime(s)
-    })
-
-    holes.forEach(h => {
-      holeTime += calculateHoleTime(h)
-    })
+    slots.forEach(s => slotTime += calculateSlotTime(s))
+    holes.forEach(h => holeTime += calculateHoleTime(h))
 
     const totalTimePerPiece = slotTime + holeTime
 
-    // 💰 COST MODEL
     const hourlyRateMap = {
       A: 120,
       B: 90,
@@ -90,6 +92,13 @@ export default function App() {
     })
   }
 
+  const format = (num) => {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(num)
+  }
+
   return (
     <div style={{ padding: 40, fontFamily: "Arial", color: "white", background: "#0f172a", minHeight: "100vh" }}>
       <h1>Machining Estimator</h1>
@@ -101,34 +110,35 @@ export default function App() {
       {slots.map((slot, i) => (
         <div key={i}>
           <input placeholder="Length" onChange={(e) => {
-            const newSlots = [...slots]
-            newSlots[i].length = e.target.value
-            setSlots(newSlots)
+            const s = [...slots]; s[i].length = e.target.value; setSlots(s)
           }} />
           <input placeholder="Width" onChange={(e) => {
-            const newSlots = [...slots]
-            newSlots[i].width = e.target.value
-            setSlots(newSlots)
+            const s = [...slots]; s[i].width = e.target.value; setSlots(s)
           }} />
           <input placeholder="Depth" onChange={(e) => {
-            const newSlots = [...slots]
-            newSlots[i].depth = e.target.value
-            setSlots(newSlots)
+            const s = [...slots]; s[i].depth = e.target.value; setSlots(s)
+          }} />
+          <input placeholder="Qty" onChange={(e) => {
+            const s = [...slots]; s[i].count = e.target.value; setSlots(s)
           }} />
 
           <select onChange={(e) => {
-            const newSlots = [...slots]
-            newSlots[i].quality = e.target.value
-            setSlots(newSlots)
+            const s = [...slots]; s[i].quality = e.target.value; setSlots(s)
           }}>
             <option value="high">High Quality</option>
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
+
+          <div style={{ fontSize: 12, opacity: 0.7 }}>
+            {slot.quality === "high" && "High Quality (Slow / Precise)"}
+            {slot.quality === "balanced" && "Balanced (Optimal)"}
+            {slot.quality === "fast" && "Fast (Cost Efficient)"}
+          </div>
         </div>
       ))}
 
-      <button onClick={() => setSlots([...slots, { length: "", width: "", depth: "", quality: "balanced" }])}>
+      <button onClick={() => setSlots([...slots, { length: "", width: "", depth: "", count: 1, quality: "balanced" }])}>
         + Add Slot
       </button>
 
@@ -136,19 +146,32 @@ export default function App() {
       {holes.map((hole, i) => (
         <div key={i}>
           <input placeholder="Diameter" onChange={(e) => {
-            const newHoles = [...holes]
-            newHoles[i].diameter = e.target.value
-            setHoles(newHoles)
+            const h = [...holes]; h[i].diameter = e.target.value; setHoles(h)
           }} />
           <input placeholder="Depth" onChange={(e) => {
-            const newHoles = [...holes]
-            newHoles[i].depth = e.target.value
-            setHoles(newHoles)
+            const h = [...holes]; h[i].depth = e.target.value; setHoles(h)
           }} />
+          <input placeholder="Qty" onChange={(e) => {
+            const h = [...holes]; h[i].count = e.target.value; setHoles(h)
+          }} />
+
+          <select onChange={(e) => {
+            const h = [...holes]; h[i].quality = e.target.value; setHoles(h)
+          }}>
+            <option value="high">High Quality</option>
+            <option value="balanced">Balanced</option>
+            <option value="fast">Fast</option>
+          </select>
+
+          <div style={{ fontSize: 12, opacity: 0.7 }}>
+            {hole.quality === "high" && "High Quality (Slow / Precise)"}
+            {hole.quality === "balanced" && "Balanced (Optimal)"}
+            {hole.quality === "fast" && "Fast (Cost Efficient)"}
+          </div>
         </div>
       ))}
 
-      <button onClick={() => setHoles([...holes, { diameter: "", depth: "", quality: "balanced" }])}>
+      <button onClick={() => setHoles([...holes, { diameter: "", depth: "", count: 1, quality: "balanced" }])}>
         + Add Hole
       </button>
 
@@ -159,18 +182,24 @@ export default function App() {
         <option value="C">C Tier</option>
       </select>
 
+      <div style={{ fontSize: 12, opacity: 0.7 }}>
+        {supplier === "A" && "High-end precision supplier"}
+        {supplier === "B" && "Balanced industrial supplier"}
+        {supplier === "C" && "Cost-focused supplier"}
+      </div>
+
       <br /><br />
       <button onClick={handleCalculate}>Calculate</button>
 
       {result && (
         <div style={{ marginTop: 30 }}>
-          <p>Slot Time: {result.slotTime.toFixed(2)} h</p>
-          <p>Hole Time: {result.holeTime.toFixed(2)} h</p>
+          <p>Slot Time: {format(result.slotTime)} h</p>
+          <p>Hole Time: {format(result.holeTime)} h</p>
 
-          <h3>Time per piece: {result.totalTimePerPiece.toFixed(2)} h</h3>
+          <h3>Time per piece: {format(result.totalTimePerPiece)} h</h3>
 
-          <p>Unit Cost: €{result.unitCost.toFixed(2)}</p>
-          <h2>Total Cost: €{result.totalCost.toFixed(2)}</h2>
+          <p>Unit Cost: €{format(result.unitCost)}</p>
+          <h2>Total Cost: €{format(result.totalCost)}</h2>
         </div>
       )}
     </div>
