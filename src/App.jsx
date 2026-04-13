@@ -2,9 +2,10 @@ import { useState } from "react"
 
 export default function App() {
   const [quantity, setQuantity] = useState(1)
+  const [materialCost, setMaterialCost] = useState(0)
 
   const [slots, setSlots] = useState([
-    { length: "", width: "", depth: "", count: 1, quality: "balanced" }
+    { length: "", width: "", depth: "", count: 1, quality: "high" }
   ])
 
   const [holes, setHoles] = useState([
@@ -14,7 +15,7 @@ export default function App() {
   const [supplier, setSupplier] = useState("B")
   const [result, setResult] = useState(null)
 
-  // 🔥 SLOT ENGINE
+  // 🔥 SLOT ENGINE (FIXED QUALITY)
   const calculateSlotTime = (slot) => {
     const L = parseFloat(slot.length)
     const W = parseFloat(slot.width)
@@ -27,12 +28,12 @@ export default function App() {
     const feed = 5500
 
     const efficiencyMap = {
-      high: 0.06,
-      balanced: 0.08,
-      fast: 0.1
+      high: 0.08,       // ✅ doğru süre (Excel match)
+      balanced: 0.10,   // faster
+      fast: 0.12        // fastest
     }
 
-    const efficiency = efficiencyMap[slot.quality] || 0.08
+    const efficiency = efficiencyMap[slot.quality]
 
     const volume = L * W * D
     const timeMinutes = volume / (feed * tool * efficiency)
@@ -50,17 +51,15 @@ export default function App() {
 
     const feed = 3000
 
-    const baseTime = (dep / feed) * 1000
+    const base = (dep / feed) * 1000
 
-    const qualityFactor = {
+    const factorMap = {
       high: 1.3,
       balanced: 1,
       fast: 0.8
     }
 
-    const factor = qualityFactor[hole.quality] || 1
-
-    return (baseTime * factor / 60) * count
+    return (base * factorMap[hole.quality] / 60) * count
   }
 
   const handleCalculate = () => {
@@ -70,123 +69,92 @@ export default function App() {
     slots.forEach(s => slotTime += calculateSlotTime(s))
     holes.forEach(h => holeTime += calculateHoleTime(h))
 
-    const totalTimePerPiece = slotTime + holeTime
+    const totalTime = slotTime + holeTime
 
-    const hourlyRateMap = {
-      A: 120,
-      B: 90,
-      C: 60
+    const rateMap = {
+      A: 55,
+      B: 45,
+      C: 35
     }
 
-    const rate = hourlyRateMap[supplier]
+    const rate = rateMap[supplier]
 
-    const unitCost = totalTimePerPiece * rate
+    const unitCost = totalTime * rate + parseFloat(materialCost || 0)
     const totalCost = unitCost * quantity
 
     setResult({
       slotTime,
       holeTime,
-      totalTimePerPiece,
+      totalTime,
       unitCost,
       totalCost
     })
   }
 
-  const format = (num) => {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(num)
-  }
+  const format = (n) =>
+    new Intl.NumberFormat("en-US", { minimumFractionDigits: 2 }).format(n)
 
   return (
-    <div style={{ padding: 40, fontFamily: "Arial", color: "white", background: "#0f172a", minHeight: "100vh" }}>
+    <div style={{ padding: 40, background: "#0f172a", color: "white", minHeight: "100vh" }}>
       <h1>Machining Estimator</h1>
 
       <h3>Workpiece Quantity</h3>
-      <input value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+      <input value={quantity} onChange={e => setQuantity(e.target.value)} />
+
+      <h3>Material Cost (€ / piece)</h3>
+      <input value={materialCost} onChange={e => setMaterialCost(e.target.value)} />
 
       <h2>Slot Operations</h2>
-      {slots.map((slot, i) => (
+      {slots.map((s, i) => (
         <div key={i}>
-          <input placeholder="Length" onChange={(e) => {
-            const s = [...slots]; s[i].length = e.target.value; setSlots(s)
-          }} />
-          <input placeholder="Width" onChange={(e) => {
-            const s = [...slots]; s[i].width = e.target.value; setSlots(s)
-          }} />
-          <input placeholder="Depth" onChange={(e) => {
-            const s = [...slots]; s[i].depth = e.target.value; setSlots(s)
-          }} />
-          <input placeholder="Qty" onChange={(e) => {
-            const s = [...slots]; s[i].count = e.target.value; setSlots(s)
-          }} />
+          <input placeholder="Length" onChange={e => { let x=[...slots]; x[i].length=e.target.value; setSlots(x)}} />
+          <input placeholder="Width" onChange={e => { let x=[...slots]; x[i].width=e.target.value; setSlots(x)}} />
+          <input placeholder="Depth" onChange={e => { let x=[...slots]; x[i].depth=e.target.value; setSlots(x)}} />
+          <input placeholder="Qty" onChange={e => { let x=[...slots]; x[i].count=e.target.value; setSlots(x)}} />
 
-          <select onChange={(e) => {
-            const s = [...slots]; s[i].quality = e.target.value; setSlots(s)
-          }}>
-            <option value="high">High Quality</option>
+          <select onChange={e => { let x=[...slots]; x[i].quality=e.target.value; setSlots(x)}}>
+            <option value="high">High</option>
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
 
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            {slot.quality === "high" && "High Quality (Slow / Precise)"}
-            {slot.quality === "balanced" && "Balanced (Optimal)"}
-            {slot.quality === "fast" && "Fast (Cost Efficient)"}
+          <div style={{ fontSize: 12 }}>
+            {s.quality === "high" && "High Quality (Precise / Slow)"}
+            {s.quality === "balanced" && "Balanced (Optimal)"}
+            {s.quality === "fast" && "Fast (Cost Efficient)"}
           </div>
         </div>
       ))}
-
-      <button onClick={() => setSlots([...slots, { length: "", width: "", depth: "", count: 1, quality: "balanced" }])}>
-        + Add Slot
-      </button>
+      <button onClick={() => setSlots([...slots, { length:"", width:"", depth:"", count:1, quality:"high"}])}>+ Add Slot</button>
 
       <h2>Hole Operations</h2>
-      {holes.map((hole, i) => (
+      {holes.map((h, i) => (
         <div key={i}>
-          <input placeholder="Diameter" onChange={(e) => {
-            const h = [...holes]; h[i].diameter = e.target.value; setHoles(h)
-          }} />
-          <input placeholder="Depth" onChange={(e) => {
-            const h = [...holes]; h[i].depth = e.target.value; setHoles(h)
-          }} />
-          <input placeholder="Qty" onChange={(e) => {
-            const h = [...holes]; h[i].count = e.target.value; setHoles(h)
-          }} />
+          <input placeholder="Diameter" onChange={e => { let x=[...holes]; x[i].diameter=e.target.value; setHoles(x)}} />
+          <input placeholder="Depth" onChange={e => { let x=[...holes]; x[i].depth=e.target.value; setHoles(x)}} />
+          <input placeholder="Qty" onChange={e => { let x=[...holes]; x[i].count=e.target.value; setHoles(x)}} />
 
-          <select onChange={(e) => {
-            const h = [...holes]; h[i].quality = e.target.value; setHoles(h)
-          }}>
-            <option value="high">High Quality</option>
+          <select onChange={e => { let x=[...holes]; x[i].quality=e.target.value; setHoles(x)}} >
+            <option value="high">High</option>
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
 
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            {hole.quality === "high" && "High Quality (Slow / Precise)"}
-            {hole.quality === "balanced" && "Balanced (Optimal)"}
-            {hole.quality === "fast" && "Fast (Cost Efficient)"}
+          <div style={{ fontSize: 12 }}>
+            {h.quality === "high" && "High Quality (Precise)"}
+            {h.quality === "balanced" && "Balanced"}
+            {h.quality === "fast" && "Fast"}
           </div>
         </div>
       ))}
+      <button onClick={() => setHoles([...holes, { diameter:"", depth:"", count:1, quality:"balanced"}])}>+ Add Hole</button>
 
-      <button onClick={() => setHoles([...holes, { diameter: "", depth: "", count: 1, quality: "balanced" }])}>
-        + Add Hole
-      </button>
-
-      <h3>Supplier</h3>
-      <select onChange={(e) => setSupplier(e.target.value)}>
-        <option value="A">A Tier</option>
-        <option value="B">B Tier</option>
-        <option value="C">C Tier</option>
+      <h3>Supplier Selection</h3>
+      <select onChange={e => setSupplier(e.target.value)}>
+        <option value="A">A Tier - 55 €/h</option>
+        <option value="B">B Tier - 45 €/h</option>
+        <option value="C">C Tier - 35 €/h</option>
       </select>
-
-      <div style={{ fontSize: 12, opacity: 0.7 }}>
-        {supplier === "A" && "High-end precision supplier"}
-        {supplier === "B" && "Balanced industrial supplier"}
-        {supplier === "C" && "Cost-focused supplier"}
-      </div>
 
       <br /><br />
       <button onClick={handleCalculate}>Calculate</button>
@@ -196,7 +164,7 @@ export default function App() {
           <p>Slot Time: {format(result.slotTime)} h</p>
           <p>Hole Time: {format(result.holeTime)} h</p>
 
-          <h3>Time per piece: {format(result.totalTimePerPiece)} h</h3>
+          <h3>Time per piece: {format(result.totalTime)} h</h3>
 
           <p>Unit Cost: €{format(result.unitCost)}</p>
           <h2>Total Cost: €{format(result.totalCost)}</h2>
