@@ -16,12 +16,12 @@ export default function App() {
   const [supplier, setSupplier] = useState("B")
   const [result, setResult] = useState(null)
 
-  // 🔧 SLOT ENGINE
+  // SLOT
   const calculateSlotTime = (s) => {
-    const L = Number(s.length)
-    const W = Number(s.width)
-    const D = Number(s.depth)
-    const count = Number(s.count) || 1
+    const L = +s.length
+    const W = +s.width
+    const D = +s.depth
+    const count = +s.count || 1
 
     if (!L || !W || !D) return 0
 
@@ -40,11 +40,11 @@ export default function App() {
     return (minutes / 60) * count
   }
 
-  // 🔥 FINAL HOLE ENGINE (EXCEL MATCH)
+  // 🔥 FINAL HOLE MODEL
   const calculateHoleTime = (h) => {
 
-    const depth = Number(h.depth)
-    const count = Number(h.count) || 1
+    const depth = +h.depth
+    const count = +h.count || 1
 
     if (!depth) return 0
 
@@ -56,21 +56,19 @@ export default function App() {
 
     const c = config[h.quality]
 
-    // 🔧 minimum 1 peck
-    const peckCount = Math.max(1, Math.ceil(depth / c.peck))
-
+    const peckCount = Math.ceil(depth / c.peck)
     const perPeck = c.cut + c.retract + c.air
 
     let totalSeconds =
-      (peckCount * perPeck)
-      + 18 // setup (0.3 min)
+      (peckCount * perPeck * count) // tüm delikler
 
-    // 🔥 safety margin
+    // 🔥 setup sadece 1 kez
+    totalSeconds += 18
+
+    // safety
     totalSeconds *= 1.15
 
-    const hours = totalSeconds / 3600
-
-    return hours * count
+    return totalSeconds / 3600
   }
 
   const handleCalculate = () => {
@@ -83,21 +81,17 @@ export default function App() {
 
     const totalTime = slotTime + holeTime
 
-    // 🔥 GUARANTEED RATE
     const rateMap = {
-      A: 55,
-      B: 45,
-      C: 35
+      A:55,
+      B:45,
+      C:35
     }
 
-    const rate = rateMap[String(supplier)]
+    const rate = rateMap[supplier]
 
     const machiningCost = totalTime * rate
-
-    const unitCost =
-      machiningCost + Number(materialCost || 0)
-
-    const totalCost = unitCost * Number(quantity || 1)
+    const unitCost = machiningCost + (+materialCost || 0)
+    const totalCost = unitCost * quantity
 
     setResult({
       slotTime,
@@ -111,8 +105,8 @@ export default function App() {
 
   const f = (n) =>
     new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
     }).format(n)
 
   return (
@@ -140,6 +134,12 @@ export default function App() {
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
+
+          <div style={{fontSize:12}}>
+            {s.quality==="high" && "High Quality (Precise / Slow)"}
+            {s.quality==="balanced" && "Balanced (Optimal)"}
+            {s.quality==="fast" && "Fast (Cost Efficient)"}
+          </div>
         </div>
       ))}
 
@@ -160,6 +160,12 @@ export default function App() {
             <option value="balanced">Balanced</option>
             <option value="fast">Fast</option>
           </select>
+
+          <div style={{fontSize:12}}>
+            {h.quality==="high" && "High Quality (Peck drilling slow)"}
+            {h.quality==="balanced" && "Balanced drilling"}
+            {h.quality==="fast" && "Fast drilling"}
+          </div>
         </div>
       ))}
 
@@ -200,6 +206,7 @@ export default function App() {
           <h2>Total Cost: €{f(result.totalCost)}</h2>
         </div>
       )}
+
     </div>
   )
 }
