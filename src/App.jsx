@@ -17,7 +17,7 @@ export default function App() {
 
   const [result, setResult] = useState(null)
 
-  // ---------------- SLOT ----------------
+  // ================= SLOT =================
 
   const calculateSlotTime = (s) => {
     const length = +s.length
@@ -27,18 +27,22 @@ export default function App() {
 
     if (!length || !width || !depth) return 0
 
-    const baseTime = (length * depth) / 6000
+    // 🔥 ANA FORMÜL
+    let baseTime = (length * width * depth) / 1400000
+
+    // 🔥 EXCEL REALITY FACTOR (kritik)
+    baseTime = baseTime * 3
 
     const multipliers = {
       high: 1,
-      balanced: 0.75,
-      fast: 0.55
+      balanced: 0.8,
+      fast: 0.6
     }
 
     return baseTime * multipliers[s.quality] * count
   }
 
-  // ---------------- HOLE (FIXED) ----------------
+  // ================= HOLE =================
 
   const calculateHoleTime = (h) => {
 
@@ -58,19 +62,17 @@ export default function App() {
     const peckCount = Math.ceil(depth / c.peck)
     const perPeck = c.cut + c.retract + c.air
 
-    // 🔥 cutting kısmı
     const cuttingSeconds = peckCount * perPeck * count
 
-    // 🔥 setup sabit
-    const setupSeconds = 18
+    // 🔥 stabilize edilmiş setup
+    const setupSeconds = 30
 
-    // 🔥 safety sadece cutting’e
     const totalSeconds = (cuttingSeconds * 1.15) + setupSeconds
 
     return totalSeconds / 3600
   }
 
-  // ---------------- CALCULATE ----------------
+  // ================= CALCULATE =================
 
   const handleCalculate = () => {
 
@@ -96,7 +98,7 @@ export default function App() {
     })
   }
 
-  // ---------------- UI ----------------
+  // ================= UI =================
 
   return (
     <div style={{ textAlign: "center", padding: 40, color: "white", background: "#0b1a2b", minHeight: "100vh" }}>
