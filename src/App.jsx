@@ -17,21 +17,17 @@ export default function App() {
 
   const [result, setResult] = useState(null)
 
-  // ================= SLOT =================
+  // ================= SLOT (FINAL FIX) =================
 
   const calculateSlotTime = (s) => {
     const length = +s.length
-    const width = +s.width
     const depth = +s.depth
     const count = +s.count || 1
 
-    if (!length || !width || !depth) return 0
+    if (!length || !depth) return 0
 
-    // 🔥 ANA FORMÜL
-    let baseTime = (length * width * depth) / 1400000
-
-    // 🔥 EXCEL REALITY FACTOR (kritik)
-    baseTime = baseTime * 3
+    // 🔥 DOĞRU MODEL (width kaldırıldı, scale düzeltildi)
+    const baseTime = (length * depth) / 1200
 
     const multipliers = {
       high: 1,
@@ -64,7 +60,6 @@ export default function App() {
 
     const cuttingSeconds = peckCount * perPeck * count
 
-    // 🔥 stabilize edilmiş setup
     const setupSeconds = 30
 
     const totalSeconds = (cuttingSeconds * 1.15) + setupSeconds
