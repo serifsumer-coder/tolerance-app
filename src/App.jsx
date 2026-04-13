@@ -15,7 +15,7 @@ export default function App() {
   const [supplier, setSupplier] = useState("B")
   const [result, setResult] = useState(null)
 
-  // 🔥 SLOT ENGINE (FIXED QUALITY)
+  // 🔥 SLOT ENGINE (DOĞRU)
   const calculateSlotTime = (slot) => {
     const L = parseFloat(slot.length)
     const W = parseFloat(slot.width)
@@ -28,20 +28,18 @@ export default function App() {
     const feed = 5500
 
     const efficiencyMap = {
-      high: 0.08,       // ✅ doğru süre (Excel match)
-      balanced: 0.10,   // faster
-      fast: 0.12        // fastest
+      high: 0.08,
+      balanced: 0.10,
+      fast: 0.12
     }
 
-    const efficiency = efficiencyMap[slot.quality]
-
     const volume = L * W * D
-    const timeMinutes = volume / (feed * tool * efficiency)
+    const timeMinutes = volume / (feed * tool * efficiencyMap[slot.quality])
 
     return (timeMinutes / 60) * count
   }
 
-  // 🔵 HOLE ENGINE
+  // 🔵 HOLE ENGINE (FIXED!)
   const calculateHoleTime = (hole) => {
     const dia = parseFloat(hole.diameter)
     const dep = parseFloat(hole.depth)
@@ -51,15 +49,16 @@ export default function App() {
 
     const feed = 3000
 
-    const base = (dep / feed) * 1000
+    // doğru model (lineer delme)
+    let timeMinutes = dep / feed
 
     const factorMap = {
-      high: 1.3,
+      high: 1.2,
       balanced: 1,
       fast: 0.8
     }
 
-    return (base * factorMap[hole.quality] / 60) * count
+    return (timeMinutes * factorMap[hole.quality]) * count
   }
 
   const handleCalculate = () => {
@@ -79,13 +78,15 @@ export default function App() {
 
     const rate = rateMap[supplier]
 
-    const unitCost = totalTime * rate + parseFloat(materialCost || 0)
+    const machiningCost = totalTime * rate
+    const unitCost = machiningCost + parseFloat(materialCost || 0)
     const totalCost = unitCost * quantity
 
     setResult({
       slotTime,
       holeTime,
       totalTime,
+      machiningCost,
       unitCost,
       totalCost
     })
@@ -101,10 +102,11 @@ export default function App() {
       <h3>Workpiece Quantity</h3>
       <input value={quantity} onChange={e => setQuantity(e.target.value)} />
 
-      <h3>Material Cost (€ / piece)</h3>
+      <h3 style={{ marginTop: 20 }}>Material Cost (€ / piece)</h3>
       <input value={materialCost} onChange={e => setMaterialCost(e.target.value)} />
 
-      <h2>Slot Operations</h2>
+      <h2 style={{ marginTop: 40 }}>Slot Operations</h2>
+
       {slots.map((s, i) => (
         <div key={i}>
           <input placeholder="Length" onChange={e => { let x=[...slots]; x[i].length=e.target.value; setSlots(x)}} />
@@ -125,9 +127,11 @@ export default function App() {
           </div>
         </div>
       ))}
+
       <button onClick={() => setSlots([...slots, { length:"", width:"", depth:"", count:1, quality:"high"}])}>+ Add Slot</button>
 
       <h2>Hole Operations</h2>
+
       {holes.map((h, i) => (
         <div key={i}>
           <input placeholder="Diameter" onChange={e => { let x=[...holes]; x[i].diameter=e.target.value; setHoles(x)}} />
@@ -147,9 +151,17 @@ export default function App() {
           </div>
         </div>
       ))}
+
       <button onClick={() => setHoles([...holes, { diameter:"", depth:"", count:1, quality:"balanced"}])}>+ Add Hole</button>
 
-      <h3>Supplier Selection</h3>
+      <h3 style={{ marginTop: 30 }}>Supplier Selection</h3>
+
+      <div style={{ fontSize: 12, marginBottom: 5 }}>
+        <span style={{ color: "#4ade80" }}>●</span> A Tier: Precision Supplier &nbsp;
+        <span style={{ color: "#60a5fa" }}>●</span> B Tier: Industrial Standard &nbsp;
+        <span style={{ color: "#f87171" }}>●</span> C Tier: Cost Focused
+      </div>
+
       <select onChange={e => setSupplier(e.target.value)}>
         <option value="A">A Tier - 55 €/h</option>
         <option value="B">B Tier - 45 €/h</option>
@@ -160,13 +172,18 @@ export default function App() {
       <button onClick={handleCalculate}>Calculate</button>
 
       {result && (
-        <div style={{ marginTop: 30 }}>
+        <div style={{ marginTop: 40 }}>
+          <h3>======== SUMMARY ========</h3>
+
           <p>Slot Time: {format(result.slotTime)} h</p>
           <p>Hole Time: {format(result.holeTime)} h</p>
 
-          <h3>Time per piece: {format(result.totalTime)} h</h3>
+          <p>Total Machining Time: {format(result.totalTime)} h</p>
 
-          <p>Unit Cost: €{format(result.unitCost)}</p>
+          <p>Machining Cost: €{format(result.machiningCost)}</p>
+          <p>Material Cost: €{format(materialCost)}</p>
+
+          <h3>Unit Cost: €{format(result.unitCost)}</h3>
           <h2>Total Cost: €{format(result.totalCost)}</h2>
         </div>
       )}
